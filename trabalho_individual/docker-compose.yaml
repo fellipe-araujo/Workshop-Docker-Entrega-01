@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+    volumes:
+      - ./api-gateway:/api-gateway/
+      - /api-gateway/node_modules
+    ports:
+      - 7000:7000
+    depends_on:
+      - users-service
+      - chat-service
+  
+  chat-app:
+    build:
+      context: ./chat-app
+    env_file: ./chat-app/.env
+    volumes:
+      - ./chat-app:/chat-app/
+      - /chat-app/node_modules
+    ports:
+      - 7001:7001
+    depends_on:
+      - api-gateway
+  
+  chat-service:
+    build:
+      context: ./chat-service
+    volumes:
+      - ./chat-service:/chat-service/
+      - /chat-service/node_modules
+    ports:
+      - 7100:7100
+    depends_on:
+      - chat-service-db
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    volumes:
+      - ./phpmyadmin/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php
+    ports:
+      - 7300:80
+    depends_on:
+      - users-service-db
+      - chat-service-db
+  
+  users-service:
+    build:
+      context: ./users-service
+    volumes:
+      - ./users-service:/users-service/
+    ports:
+      - 7101:7101
+    depends_on:
+      - users-service-db
+  
+  users-service-db:
+    image: mysql:5.7.20
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: db
+    volumes:
+      - users-service-data:/var/lib/mysql
+    ports:
+      - 7201:3306
+  
+  chat-service-db:
+    image: mysql:5.7.20
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: db
+    ports:
+      - 7200:3306
+    volumes:
+      - chat-service-data:/var/lib/mysql
+
+volumes:
+  users-service-data:
+  chat-service-data:
